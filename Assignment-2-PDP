@@ -1,0 +1,33 @@
+ordersCSV = LOAD '/user/maria_dev/diplomacy/orders.csv' USING PigStorage(',') AS
+			(game_id,
+            unit_id,
+            unit_order,
+            location,
+            target_dest,
+            target_dest2,
+            success,
+            reason,
+            turn_num
+            );
+            
+--Replace double quotations
+clean = FOREACH ordersCSV GENERATE
+			REPLACE($0, '\\"', '') AS (game_id:chararray),
+            REPLACE($1, '\\"', '') AS (unit_id:chararray),
+            REPLACE($2, '\\"', '') AS (unit_order:chararray),
+            REPLACE($3, '\\"', '') AS (location:chararray),
+            REPLACE($4, '\\"', '') AS (target_dest:chararray),
+            REPLACE($5, '\\"', '') AS (target_dest2:chararray),
+            REPLACE($6, '\\"', '') AS (success:chararray),
+            REPLACE($7, '\\"', '') AS (reason:chararray),
+            REPLACE($8, '\\"', '') AS (turn_num:chararray);
+--group location en target_dest            
+alphalocation = GROUP clean BY (location, target_dest);
+--count the hollands
+hollandtargetcount = FOREACH alphalocation GENERATE FLATTEN(group) AS (location, target_dest), COUNT($1);
+--filter by holland
+hollandtarget = FILTER hollandtargetcount BY $1 == 'Holland';
+--Make alphabetic order
+orderdaplha = ORDER hollandtarget BY location;
+
+DUMP  orderdaplha;
